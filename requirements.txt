@@ -1,9 +1,9 @@
-cffi==1.14.5
+cffi==1.14.6
 cryptography==3.4.7
 et-xmlfile==1.1.0
+libnfs==1.0.post4
 msoffcrypto-tool==4.12.0
 olefile==0.46
 openpyxl==3.0.7
+pkg-resources==0.0.0
 pycparser==2.20
-xlrd==2.0.1
-xlwings==0.24.2

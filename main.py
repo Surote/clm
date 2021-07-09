@@ -2,16 +2,24 @@ import io
 import msoffcrypto
 import csv
 import openpyxl
+import libnfs
 
-FILENAME = './hava_inventory_v2.xlsx'
+FILENAME = '/hava_inventory_v2.xlsx'
 GL_HEADER = ['hostname','ipaddr#project#owner#os#software','siemstatus']
 GL_DATA_LIST = []
 TEMP_CSV = 'temp.csv'
 
 
-def decrypt_excel_password():
+def get_excel_nfs():
+    nfs = libnfs.NFS('nfs://172.16.22.155/mnt/nfs/source-inventory-hava/')
+    file = nfs.open(FILENAME, mode='rb').read()
+    fileobj = io.BytesIO(file)
+    return fileobj
+
+
+def decrypt_excel_password(excel_file):
     decrypted_workbook = io.BytesIO()
-    with open(FILENAME, 'rb') as file:
+    with excel_file as file:
         office_file = msoffcrypto.OfficeFile(file)
         office_file.load_key(password='clm@1234')
         office_file.decrypt(decrypted_workbook)
@@ -49,7 +57,8 @@ def read_tmp_csv():
 
 
 if __name__ == '__main__':
-    sh = decrypt_excel_password()
+    excel_file = get_excel_nfs()
+    sh = decrypt_excel_password(excel_file)
     create_tmp_csv(sh)
     final_list = read_tmp_csv()
 
