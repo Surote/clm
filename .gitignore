@@ -1,4 +1,6 @@
 clm-emv/*
 result/*
+app/result/*
+app/_*
 *.xlsx
 *.csv
