@@ -11,8 +11,11 @@ TEMP_CSV = 'temp.csv'
 
 
 def get_excel_nfs():
+    ## Mount NFS.
     nfs = libnfs.NFS('nfs://172.16.22.155/mnt/nfs/source-inventory-hava/')
+    ## Read file inventory and keep in bytearray format.
     file = nfs.open(FILENAME, mode='rb').read()
+    ## Convert bytearray to BufferedReader for support msoffcrypto input type.
     fileobj = io.BytesIO(file)
     return fileobj
 
@@ -57,6 +60,7 @@ def read_tmp_csv():
 
 
 if __name__ == '__main__':
+    ## Get File Inventory from NFS
     excel_file = get_excel_nfs()
     sh = decrypt_excel_password(excel_file)
     create_tmp_csv(sh)
