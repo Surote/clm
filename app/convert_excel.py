@@ -3,13 +3,14 @@ import msoffcrypto
 import csv
 import openpyxl
 import libnfs
+from decouple import config
 
-IP_NFS = '172.16.22.155'
-SRC_PATH = 'source-inventory-hava/'
-FILENAME = 'hava_inventory_v2.xlsx'
+IP_NFS = config('IP_NFS')
+SRC_PATH = config('SRC_PATH')
+FILENAME = config('FILENAME')
 GL_HEADER = ['hostname','ipaddr#project#owner#os#software','siemstatus']
 GL_DATA_LIST = []
-TEMP_CSV = 'temp.csv'
+TEMP_CSV = config('TEMP_CSV')
 
 def get_inventory_nfs():
     ## Mount NFS.
@@ -25,7 +26,7 @@ def decrypt_excel_password(excel_file):
     decrypted_workbook = io.BytesIO()
     with excel_file as file:
         office_file = msoffcrypto.OfficeFile(file)
-        office_file.load_key(password='clm@1234')
+        office_file.load_key(password=config('PASS_EX'))
         office_file.decrypt(decrypted_workbook)
     workbook = openpyxl.load_workbook(filename=decrypted_workbook)
     worksheet = workbook['Table1']
