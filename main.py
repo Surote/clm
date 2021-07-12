@@ -1,3 +1,4 @@
+from decouple import config
 import msoffcrypto
 import openpyxl
 import libnfs
@@ -6,10 +7,10 @@ import io
 
 
 ## Edit variable Here ##
-IP_NFS = '172.16.22.155'
-SRC_PATH = 'source-inventory-hava/'
-DST_PATH = 'dest-inventory-graylog/'
-FILENAME = '/hava_inventory_v2.xlsx'
+IP_NFS = config('IP_NFS')
+SRC_PATH = config('SRC_PATH')
+DST_PATH = config('DST_PATH')
+FILENAME = config('FILENAME')
 GL_HEADER = ['hostname','ipaddr#project#owner#os#software','siemstatus']
 GL_DATA_LIST = []
 TEMP_CSV = 'temp.csv'
@@ -29,7 +30,7 @@ def decrypt_excel_password(excel_file):
     decrypted_workbook = io.BytesIO()
     with excel_file as file:
         office_file = msoffcrypto.OfficeFile(file)
-        office_file.load_key(password='clm@1234')
+        office_file.load_key(password=config('PASS_EX'))
         office_file.decrypt(decrypted_workbook)
     workbook = openpyxl.load_workbook(filename=decrypted_workbook)
     worksheet = workbook['Table1']
@@ -83,7 +84,6 @@ if __name__ == '__main__':
     final_list = read_tmp_csv()
 
     with open('final_out.csv','w') as file:
-        print(file)
         writer = csv.DictWriter(file, fieldnames=GL_HEADER)
         writer.writeheader()
         for row in final_list:
