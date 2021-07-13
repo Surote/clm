@@ -40,7 +40,7 @@ def mount_nfs(foldermount):
 
 def access_nfs_file(nfs, operation, result=None):
     if(operation == 'read'):
-        file = nfs.open(FILENAME, mode='rb').read()
+        file = nfs.open(FILENAME, mode='r').read()
     elif(operation == 'write' and result != None):
         file = nfs.open('/final_out.csv', mode='w+').write(result)
     else:
@@ -54,29 +54,30 @@ def get_inventory_nfs():
     if(nfs != None):
         ## Read file inventory and keep in bytearray format.
         file = access_nfs_file(nfs, 'read')
-        ## Convert bytearray to BufferedReader for support msoffcrypto input type.
-        fileobj = io.BytesIO(file)
-        return fileobj
+        return file
     else:
         print('Cannot Mount NFS for read.')
 
 
-def decrypt_excel_password(excel_file):
-    decrypted_workbook = io.BytesIO()
-    with excel_file as file:
-        office_file = msoffcrypto.OfficeFile(file)
-        office_file.load_key(password=config('PASS_EX'))
-        office_file.decrypt(decrypted_workbook)
-    workbook = openpyxl.load_workbook(filename=decrypted_workbook)
-    worksheet = workbook['Table1']
-    return worksheet
+def reformat_inventory(csv_file):
+    result = []
+    ## Ex. Result csv_array =   ['5063', 'VRM01', '10.232.203.38', 
+    ##                           'SILA1', 'Application', 'Euler 2.0', 
+    ##                           'Huawei', '1903', 'New FM - Huawei Autin - Production', 
+    ##                           'NIPAKORN SIANGZHEE', '', '', '', '', '', '', '\r']
+    csv_array = (csv_file.split('\n'))
+    for row in csv_array:
+        result.append((row.split('\r'))[0].split(','))
+    return result
 
 
 def create_tmp_csv(sh):
     with open(TEMP_CSV,'w') as out:
         c = csv.writer(out)
-        for r in sh.rows:
-            c.writerow([cell.value for cell in r])
+        for r in sh:
+            ## r[0] = host_id if host_id is empty string code will skip those line.
+            if(r[0] != ''):
+                c.writerow(r)
 
 
 def init_dict():
@@ -96,7 +97,6 @@ def read_tmp_csv():
             GL_INFO['ipaddr#project#owner#os#software'] = comb
             GL_INFO['siemstatus'] = ''
             GL_DATA_LIST.append(GL_INFO)
-    # print(GL_DATA_LIST)
     return GL_DATA_LIST
 
 
@@ -117,7 +117,7 @@ def upload_result_nfs():
 if __name__ == '__main__':
     ## Get File Inventory from NFS
     inventory = get_inventory_nfs()
-    sh = decrypt_excel_password(inventory)
+    sh = reformat_inventory(inventory)
     create_tmp_csv(sh)
     final_list = read_tmp_csv()
 
