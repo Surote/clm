@@ -57,48 +57,25 @@ def get_inventory_nfs():
         print('Cannot Mount NFS for read.')
 
 
-# def decrypt_excel_password(excel_file):
-#     decrypted_workbook = io.BytesIO()
-#     with excel_file as file:
-#         office_file = msoffcrypto.OfficeFile(file)
-#         office_file.load_key(password=config('PASS_EX'))
-#         office_file.decrypt(decrypted_workbook)
-#     workbook = openpyxl.load_workbook(filename=decrypted_workbook)
-#     worksheet = workbook['Table1']
-#     return worksheet
-
 def reformat_inventory(csv_file):
-    result = []
-    ## Ex. Result csv_array =   ['5063', 'VRM01', '10.232.203.38', 
-    ##                           'SILA1', 'Application', 'Euler 2.0', 
-    ##                           'Huawei', '1903', 'New FM - Huawei Autin - Production', 
-    ##                           'NIPAKORN SIANGZHEE', '', '', '', '', '', '', '\r']
-    csv_array = (csv_file.split('\n'))
-    for row in csv_array:
-        result.append((row.split('\r'))[0].split(','))
-    return result
-
-
-# def create_tmp_csv(sh):
-#     # os.remove(TEMP_CSV)
-#     # count=0
-#     with open(TEMP_CSV,'w') as out:
-#         c = csv.writer(out)
-#         for r in sh.rows:
-#             #count+=1
-#             #for i in r:
-#             #    print(i.value,count)
-#             c.writerow([cell.value for cell in r])
-#         out.close()
-
-
-def create_tmp_csv(sh):
-    with open(TEMP_CSV,'w') as out:
-        c = csv.writer(out)
-        for r in sh:
-            ## r[0] = host_id if host_id is empty string code will skip those line.
-            if(r[0] != ''):
-                c.writerow(r)
+    GL_DATA_LIST = []
+    ##############################################################################################
+    ## Use io.StringIO for provide a in-memory stream string if not use it the result will only ##
+    ## get single character from line.                                                          ##
+    ##############################################################################################
+    reader = csv.DictReader(io.StringIO(csv_file))
+    for row in reader:
+        GL_INFO = init_dict()
+        ## Skip line when host_id not exists.
+        if row['host_id']:
+            comb = row['oob_ip']+'#'+row['project_name_english']+'#'+row['operation_owner']+'#'\
+                +row['os_name']+'#'+row['software_name']
+            GL_INFO['hostname'] = row['host_name']
+            GL_INFO['ipaddr#project#owner#os#software'] = comb
+            GL_INFO['siemstatus'] = ''
+            GL_DATA_LIST.append(GL_INFO)
+            
+    return GL_DATA_LIST
 
 
 def init_dict():
@@ -107,41 +84,16 @@ def init_dict():
             'siemstatus':''}
     return GL_INFO
 
-    
-def read_tmp_csv():
-    GL_DATA_LIST = []
-    with open(TEMP_CSV,'r') as file:
-        reader = csv.DictReader(file)
-        for row in reader:
-            GL_INFO = init_dict()
-            comb = row['oob_ip']+'#'+row['project_name_english']+'#'+row['operation_owner']+'#'+row['os_name']+'#'+row['software_name']
-            GL_INFO['hostname'] = row['host_name']
-            GL_INFO['ipaddr#project#owner#os#software'] = comb
-            GL_INFO['siemstatus'] = ''
-            GL_DATA_LIST.append(GL_INFO)
-        file.close()
-    # print(GL_DATA_LIST)
-    return GL_DATA_LIST
 
-
-def get_start():
-    inventory = get_inventory_nfs()
-    sh = reformat_inventory(inventory)
-    create_tmp_csv(sh)
-    final_list = read_tmp_csv()
-    os.system('rm -rf result/final_out.csv')
+def save_result_local(data):
     with open('result/final_out.csv','w') as file:
         writer = csv.DictWriter(file, fieldnames=GL_HEADER)
         writer.writeheader()
-        for row in final_list:
+        for row in data:
             writer.writerow(row)
-        file.close()
-    ## Create + Write File CSV in NFS
-    upload_result_nfs()
-    return 'Done'
 
 
-def upload_result_nfs():
+def save_result_nfs():
     ## Mount NFS.
     nfs = mount_nfs(DST_PATH)
     ## Open & Read Result file
@@ -154,19 +106,37 @@ def upload_result_nfs():
         print('Cannot Mount NFS for write.')
     csv_file.close()
 
+## For Flask
+def get_start():
+    inventory = get_inventory_nfs()
+    if(inventory != None):
+        ## Reformat for graylog
+        final_list = reformat_inventory(inventory)
+
+        ## Delete File before save new version due to flask save cache
+        os.system('rm -rf result/final_out.csv')
+
+        ## Create + Write File CSV in local
+        save_result_local(final_list)
+
+        ## Create + Write File CSV in NFS
+        save_result_nfs()
+        
+        ## Create + Write File CSV in NFS
+        save_result_nfs()
+        return 'Done'
+    else:
+        return 'Something went wrong'
+
 
 if __name__ == '__main__':
     inventory = get_inventory_nfs()
     if(inventory != None):
-        sh = reformat_inventory(inventory)
-        create_tmp_csv(sh)
-        final_list = read_tmp_csv()
+        ## Reformat for graylog
+        final_list = reformat_inventory(inventory)
 
-        with open('result/final_out.csv','w') as file:
-            writer = csv.DictWriter(file, fieldnames=GL_HEADER)
-            writer.writeheader()
-            for row in final_list:
-                writer.writerow(row)
+        ## Create + Write File CSV in local
+        save_result_local(final_list)
         
         ## Create + Write File CSV in NFS
-        upload_result_nfs()
+        save_result_nfs()
