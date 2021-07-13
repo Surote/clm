@@ -2,7 +2,9 @@ from decouple import config
 import msoffcrypto
 import openpyxl
 import libnfs
+import time
 import csv
+import sys
 import io
 
 
@@ -16,14 +18,47 @@ GL_DATA_LIST = []
 TEMP_CSV = 'temp.csv'
 
 
+def mount_nfs(foldermount):
+    ## n = round of loop mount NFS
+    n = 1
+    interval_time = 5
+    time_wait = 0
+    ## time_limt = 30 mins
+    time_limit = 1800
+    while(time_wait <= time_limit):
+        try:
+            time.sleep(time_wait)
+            nfs = libnfs.NFS('nfs://'+ IP_NFS + '/mnt/nfs/' + foldermount)
+            return nfs
+        except Exception as e:
+            print(e)
+            ## time_wait will increase double if previous round not success
+            time_wait = time_wait + (interval_time*n)
+            n += 1
+    return None
+
+
+def access_nfs_file(nfs, operation, result=None):
+    if(operation == 'read'):
+        file = nfs.open(FILENAME, mode='rb').read()
+    elif(operation == 'write' and result != None):
+        file = nfs.open('/final_out.csv', mode='w+').write(result)
+    else:
+        file = None
+    return file
+
+
 def get_inventory_nfs():
     ## Mount NFS.
-    nfs = libnfs.NFS('nfs://'+ IP_NFS + '/mnt/nfs/' + SRC_PATH)
-    ## Read file inventory and keep in bytearray format.
-    file = nfs.open(FILENAME, mode='rb').read()
-    ## Convert bytearray to BufferedReader for support msoffcrypto input type.
-    fileobj = io.BytesIO(file)
-    return fileobj
+    nfs = mount_nfs(SRC_PATH)
+    if(nfs != None):
+        ## Read file inventory and keep in bytearray format.
+        file = access_nfs_file(nfs, 'read')
+        ## Convert bytearray to BufferedReader for support msoffcrypto input type.
+        fileobj = io.BytesIO(file)
+        return fileobj
+    else:
+        print('Cannot Mount NFS for read.')
 
 
 def decrypt_excel_password(excel_file):
@@ -67,12 +102,15 @@ def read_tmp_csv():
 
 def upload_result_nfs():
     ## Mount NFS.
-    nfs = libnfs.NFS('nfs://'+ IP_NFS + '/mnt/nfs/' + DST_PATH)
+    nfs = mount_nfs(DST_PATH)
     ## Open & Read Result file
     csv_file = open('final_out.csv', 'r')
     result = csv_file.read()
-    ## Create File + Write File (Write function on NFS support only string)
-    nfs.open('/final_out.csv', mode='w+').write(result)
+    if(nfs != None):
+        ## Create File + Write File (Write function on NFS support only string)
+        access_nfs_file(nfs, 'write', result)
+    else:
+        print('Cannot Mount NFS for write.')
     csv_file.close()
 
 
