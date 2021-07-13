@@ -21,4 +21,3 @@ if __name__ == '__main__':
       job = scheduler.add_job(generate_csv, 'interval', minutes=5)
       scheduler.start()
       app.run(host='0.0.0.0', port=3001,debug=True)
-            
