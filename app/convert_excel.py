@@ -3,13 +3,14 @@ import msoffcrypto
 import csv
 import openpyxl
 import libnfs
+import os
+# use .env for store variables
 from decouple import config
 
 IP_NFS = config('IP_NFS')
 SRC_PATH = config('SRC_PATH')
 FILENAME = config('FILENAME')
 GL_HEADER = ['hostname','ipaddr#project#owner#os#software','siemstatus']
-GL_DATA_LIST = []
 TEMP_CSV = config('TEMP_CSV')
 
 def get_inventory_nfs():
@@ -34,13 +35,16 @@ def decrypt_excel_password(excel_file):
 
 
 def create_tmp_csv(sh):
+    # os.remove(TEMP_CSV)
+    # count=0
     with open(TEMP_CSV,'w') as out:
         c = csv.writer(out)
         for r in sh.rows:
-            for i in r:
-                print(i.value)
+            #count+=1
+            #for i in r:
+            #    print(i.value,count)
             c.writerow([cell.value for cell in r])
-
+        out.close()
 
 def init_dict():
     GL_INFO = { 'hostname':'',
@@ -50,6 +54,7 @@ def init_dict():
 
     
 def read_tmp_csv():
+    GL_DATA_LIST = []
     with open(TEMP_CSV,'r') as file:
         reader = csv.DictReader(file)
         for row in reader:
@@ -59,6 +64,7 @@ def read_tmp_csv():
             GL_INFO['ipaddr#project#owner#os#software'] = comb
             GL_INFO['siemstatus'] = ''
             GL_DATA_LIST.append(GL_INFO)
+        file.close()
     # print(GL_DATA_LIST)
     return GL_DATA_LIST
 
@@ -68,12 +74,14 @@ def get_start():
     sh = decrypt_excel_password(inventory)
     create_tmp_csv(sh)
     final_list = read_tmp_csv()
-
+    os.system('rm -rf result/final_out.csv')
     with open('result/final_out.csv','w') as file:
         writer = csv.DictWriter(file, fieldnames=GL_HEADER)
         writer.writeheader()
         for row in final_list:
             writer.writerow(row)
+        file.close()
+    return 'Done'
 
 
 if __name__ == '__main__':
@@ -82,7 +90,7 @@ if __name__ == '__main__':
     create_tmp_csv(sh)
     final_list = read_tmp_csv()
 
-    with open('final_out.csv','w') as file:
+    with open('result/final_out.csv','w') as file:
         writer = csv.DictWriter(file, fieldnames=GL_HEADER)
         writer.writeheader()
         for row in final_list:

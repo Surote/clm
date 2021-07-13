@@ -1,7 +1,9 @@
-from flask import Flask,send_from_directory,send_file
+from flask import Flask
 from flask_autoindex import AutoIndex
 import convert_excel
-import time
+from decouple import config
+from apscheduler.schedulers.background import BackgroundScheduler
+
 
 
 app = Flask(__name__)
@@ -9,11 +11,14 @@ AutoIndex(app, browse_root='result')
 
 
 @app.route('/run')
-def hello():
+def generate_csv():
       convert_excel.get_start()
-      return 'done'
+      return 'Done'
 
 
 if __name__ == '__main__':
-      app.run(host='0.0.0.0', port=3000)
+      scheduler = BackgroundScheduler()
+      job = scheduler.add_job(generate_csv, 'interval', minutes=5)
+      scheduler.start()
+      app.run(host='0.0.0.0', port=3001,debug=True)
             
