@@ -1,6 +1,4 @@
 from decouple import config
-import msoffcrypto
-import openpyxl
 import libnfs
 import time
 import csv
@@ -32,7 +30,7 @@ def mount_nfs(foldermount):
             return nfs
         except Exception as e:
             print(e)
-            ## time_wait will increase double if previous round not success
+            ## time_wait will increase if previous round not success
             time_wait = time_wait + (interval_time*n)
             n += 1
     return None
@@ -117,15 +115,16 @@ def upload_result_nfs():
 if __name__ == '__main__':
     ## Get File Inventory from NFS
     inventory = get_inventory_nfs()
-    sh = reformat_inventory(inventory)
-    create_tmp_csv(sh)
-    final_list = read_tmp_csv()
+    if(inventory != None):
+        sh = reformat_inventory(inventory)
+        create_tmp_csv(sh)
+        final_list = read_tmp_csv()
 
-    with open('final_out.csv','w') as file:
-        writer = csv.DictWriter(file, fieldnames=GL_HEADER)
-        writer.writeheader()
-        for row in final_list:
-            writer.writerow(row)
-    
-    ## Create + Write File CSV in NFS
-    upload_result_nfs()
+        with open('final_out.csv','w') as file:
+            writer = csv.DictWriter(file, fieldnames=GL_HEADER)
+            writer.writeheader()
+            for row in final_list:
+                writer.writerow(row)
+        
+        ## Create + Write File CSV in NFS
+        upload_result_nfs()
