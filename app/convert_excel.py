@@ -136,6 +136,8 @@ def get_start():
         for row in final_list:
             writer.writerow(row)
         file.close()
+    ## Create + Write File CSV in NFS
+    upload_result_nfs()
     return 'Done'
 
 
