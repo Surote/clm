@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: csvglaylog
+  labels:
+    app: csvglaylog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: csvglaylog
+  template:
+    metadata:
+      labels:
+        app: csvglaylog
+    spec:
+      containers:
+      - name: csvglaylog
+        image: surote/clm-excel2csv:1.1
+        ports:
+        - containerPort: 3001
