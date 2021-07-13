@@ -7,13 +7,13 @@ import os
 # use .env for store variables
 from decouple import config
 
-IP_NFS = config('IP_NFS')
-SRC_PATH = config('SRC_PATH')
-DST_PATH = config('DST_PATH')
-INPUT_FILENAME = config('INPUT_FILENAME')
-OUTPUT_FILENAME = config('OUTPUT_FILENAME')
+IP_NFS = os.getenv('IP_NFS','172.16.22.155')
+SRC_PATH = os.getenv('SRC_PATH','source-inventory-hava/')
+DST_PATH = os.getenv('DST_PATH','dest-inventory-graylog/')
+INPUT_FILENAME = os.getenv('INPUT_FILENAME','hava_inventory_v2.csv')
+OUTPUT_FILENAME = os.getenv('OUTPUT_FILENAME','final_out.csv')
 GL_HEADER = ['hostname','ipaddr#project#owner#os#software','siemstatus']
-TEMP_CSV = config('TEMP_CSV')
+TEMP_CSV = os.getenv('TEMP_CSV','temp.csv')
 
 
 def mount_nfs(foldermount):
@@ -112,9 +112,6 @@ def get_start():
     if(inventory != None):
         ## Reformat for graylog
         final_list = reformat_inventory(inventory)
-
-        ## Delete File before save new version due to flask save cache
-        os.system('rm -rf result/final_out.csv')
 
         ## Create + Write File CSV in local
         save_result_local(final_list)

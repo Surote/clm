@@ -13,11 +13,13 @@ RUN make
 #RUN make install
  
 FROM ubuntu:18.04
-ENV TZ=Asia/Bangkok
+ENV TZ Asia/Bangkok
+ENV LANG en_US.UTF-8
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 COPY --from=build /apps/build/libnfs-libnfs-1.10.0 /apps/build/libnfs-libnfs-1.10.0
 WORKDIR /apps/build/libnfs-libnfs-1.10.0/
 RUN apt update -y
+RUN apt-get -y install locales
 RUN apt install make libtool -y
 RUN make install
 RUN apt install software-properties-common -y
@@ -33,7 +35,7 @@ RUN pip3 install --upgrade pip
 RUN pip3 install setuptools-rust
 RUN pip3 install -r requirements.txt
 COPY /app .
-COPY .env .
+#COPY .env .
 #RUN pip install libnfs
 #RUN pip install jinja2
 #RUN pip install elasticsearch
